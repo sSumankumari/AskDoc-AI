@@ -1,6 +1,8 @@
 # AskDoc-AI
 
-**Smart AI-powered tool to summarize and interact with web content and documents using LangChain, FAISS, and LLaMA 3 via Groq.**
+**AskDoc-AI** is an intelligent assistant that helps you **summarize** and **query** content from **URLs** and **PDF documents** using modern AI techniques. It leverages **LangChain**, **FAISS**, and **Groq’s LLaMA 3** for fast, contextual Q&A.
+
+---
 
 ## Features
 
