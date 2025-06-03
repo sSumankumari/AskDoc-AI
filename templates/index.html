@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AskDoc AI</title>
+  <link rel="stylesheet" href="../static/styles.css"/>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>AskDoc <span class="ai-highlight">AI</span></h1>
+      <p class="subtitle">Summarize and interact with your documents and web content using smart AI</p>
+    </header>
+
+    <section class="upload-section">
+      <h2>Upload Document or Paste URL</h2>
+      <form id="uploadForm">
+        <input type="file" id="fileInput" accept=".pdf,.doc,.docx,.txt" />
+        <input type="url" id="urlInput" placeholder="Paste a web URL here" />
+        <button type="submit">Submit</button>
+      </form>
+    </section>
+
+    <section id="summarySection" class="hidden">
+      <h2>Summary</h2>
+      <div id="summaryContent" class="summary-content"></div>
+      <button id="refreshSummaryBtn">Refresh Summary</button>
+    </section>
+
+    <section id="qaSection" class="hidden">
+      <h2>Ask Anything</h2>
+      <form id="qaForm">
+        <input type="text" id="questionInput" placeholder="Ask a question about your document or content..." autocomplete="off"/>
+        <button type="submit">Ask</button>
+      </form>
+      <div id="answers"></div>
+    </section>
+
+    <footer>
+      <p>Powered by LangChain, FAISS, LLaMA 3, and Groq &mdash; <a href="https://github.com/sSumankumari/AskDoc-AI" target="_blank">GitHub</a></p>
+    </footer>
+  </div>
+  <script src="../static/script.js"></script>
+</body>
+</html>
