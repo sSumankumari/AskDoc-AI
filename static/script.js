@@ -1,109 +1,188 @@
-// Utility to show/hide sections
-function showSection(sectionId) {
-  document.getElementById(sectionId).classList.remove('hidden');
-}
-function hideSection(sectionId) {
-  document.getElementById(sectionId).classList.add('hidden');
-}
+document.addEventListener("DOMContentLoaded", () => {
+    // Tab switching logic
+    const tabButtons = document.querySelectorAll(".tab-btn");
+    const tabPanels = document.querySelectorAll(".tab-panel");
 
-const uploadForm = document.getElementById('uploadForm');
-const fileInput = document.getElementById('fileInput');
-const urlInput = document.getElementById('urlInput');
-const summarySection = document.getElementById('summarySection');
-const summaryContent = document.getElementById('summaryContent');
-const refreshSummaryBtn = document.getElementById('refreshSummaryBtn');
-const qaSection = document.getElementById('qaSection');
-const qaForm = document.getElementById('qaForm');
-const questionInput = document.getElementById('questionInput');
-const answersDiv = document.getElementById('answers');
+    tabButtons.forEach(btn => {
+        btn.addEventListener("click", () => {
+            tabButtons.forEach(b => b.classList.remove("active"));
+            tabPanels.forEach(p => p.classList.remove("active"));
 
-let currentDocId = null; // Track the current document/context
-
-uploadForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-
-  // Reset
-  summaryContent.textContent = '';
-  answersDiv.innerHTML = '';
-  hideSection('summarySection');
-  hideSection('qaSection');
-  currentDocId = null;
-
-  const file = fileInput.files[0];
-  const url = urlInput.value.trim();
-
-  if (!file && !url) {
-    alert('Please select a file or provide a URL.');
-    return;
-  }
-
-  let formData = new FormData();
-  if (file) formData.append('file', file);
-  if (url) formData.append('url', url);
-
-  try {
-    // Example: POST /api/upload, expects { doc_id }
-    const response = await fetch('/api/upload', { method: 'POST', body: formData });
-    if (!response.ok) throw new Error('Upload failed');
-    const data = await response.json();
-    currentDocId = data.doc_id;
-    showSection('summarySection');
-    showSection('qaSection');
-    loadSummary();
-  } catch (err) {
-    alert('Failed to upload: ' + err.message);
-  }
-});
-
-async function loadSummary() {
-  if (!currentDocId) return;
-  summaryContent.textContent = 'Generating summary...';
-  try {
-    // Example: GET /api/summary?doc_id=...
-    const response = await fetch(`/api/summary?doc_id=${encodeURIComponent(currentDocId)}`);
-    if (!response.ok) throw new Error('Could not get summary');
-    const data = await response.json();
-    summaryContent.textContent = data.summary || 'No summary available.';
-  } catch (err) {
-    summaryContent.textContent = 'Error loading summary: ' + err.message;
-  }
-}
-
-refreshSummaryBtn.addEventListener('click', loadSummary);
-
-qaForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const question = questionInput.value.trim();
-  if (!question || !currentDocId) return;
-
-  // Show user's question
-  const userBubble = document.createElement('div');
-  userBubble.textContent = question;
-  userBubble.className = 'answer-bubble user-bubble';
-  answersDiv.appendChild(userBubble);
-
-  // Show loading bubble for AI's answer
-  const aiBubble = document.createElement('div');
-  aiBubble.textContent = 'Thinking...';
-  aiBubble.className = 'answer-bubble';
-  answersDiv.appendChild(aiBubble);
-
-  // Scroll to bottom
-  answersDiv.scrollTop = answersDiv.scrollHeight;
-
-  try {
-    // Example: POST /api/ask, expects { answer }
-    const resp = await fetch('/api/ask', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ doc_id: currentDocId, question })
+            btn.classList.add("active");
+            document.getElementById(`${btn.dataset.tab}-panel`).classList.add("active");
+        });
     });
-    if (!resp.ok) throw new Error('Could not get answer');
-    const data = await resp.json();
-    aiBubble.textContent = data.answer || 'No answer available.';
-  } catch (err) {
-    aiBubble.textContent = 'Error: ' + err.message;
-  }
 
-  questionInput.value = '';
+    // PDF Upload logic
+    const uploadArea = document.getElementById("upload-area");
+    const pdfInput = document.getElementById("pdf-input");
+
+    uploadArea.addEventListener("click", () => pdfInput.click());
+
+    uploadArea.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        uploadArea.classList.add("dragging");
+    });
+
+    uploadArea.addEventListener("dragleave", () => {
+        uploadArea.classList.remove("dragging");
+    });
+
+    uploadArea.addEventListener("drop", (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove("dragging");
+        const file = e.dataTransfer.files[0];
+        handlePDFUpload(file);
+    });
+
+    pdfInput.addEventListener("change", () => {
+        const file = pdfInput.files[0];
+        handlePDFUpload(file);
+    });
+
+    function handlePDFUpload(file) {
+        if (!file || file.type !== "application/pdf") {
+            showError("Please upload a valid PDF file.");
+            return;
+        }
+
+        if (file.size > 16 * 1024 * 1024) {
+            showError("File size exceeds 16MB limit.");
+            return;
+        }
+
+        showStatus("Processing document...");
+        simulateProcessing(() => {
+            showSummary("This is a sample summary generated from the uploaded PDF.");
+            showQASection();
+        });
+    }
+
+    // URL Submit logic
+    const urlForm = document.getElementById("url-form");
+    const urlInput = document.getElementById("url-input");
+
+    urlForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const url = urlInput.value.trim();
+        if (!url) return;
+
+        showStatus("Fetching and analyzing the web page...");
+        simulateProcessing(() => {
+            showSummary(`This is a summary of the content from <a href="${url}" target="_blank">${url}</a>.`);
+            showQASection();
+        });
+    });
+
+    // Status handling
+    function showStatus(message) {
+        document.getElementById("status-text").textContent = message;
+        document.getElementById("status-section").classList.remove("hidden");
+        document.getElementById("progress-fill").style.width = "0%";
+        let width = 0;
+        const interval = setInterval(() => {
+            if (width >= 100) clearInterval(interval);
+            width += 5;
+            document.getElementById("progress-fill").style.width = width + "%";
+        }, 100);
+    }
+
+    // Simulate processing (replace with actual fetch)
+    function simulateProcessing(callback) {
+        setTimeout(() => {
+            document.getElementById("status-section").classList.add("hidden");
+            callback();
+        }, 2000);
+    }
+
+    // Summary handling
+    function showSummary(content) {
+        const summarySection = document.getElementById("summary-section");
+        const summaryContent = document.getElementById("summary-content");
+
+        summaryContent.innerHTML = `<p>${content}</p>`;
+        summarySection.classList.remove("hidden");
+    }
+
+    // Q&A Section
+    function showQASection() {
+        document.getElementById("qa-section").classList.remove("hidden");
+    }
+
+    const questionForm = document.getElementById("question-form");
+    const questionInput = document.getElementById("question-input");
+    const chatMessages = document.getElementById("chat-messages");
+
+    questionForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const question = questionInput.value.trim();
+        if (!question) return;
+
+        appendMessage("user", question);
+        questionInput.value = "";
+
+        setTimeout(() => {
+            appendMessage("ai", `This is a generated answer for: "${question}"`);
+        }, 1000);
+    });
+
+    // Suggested Questions
+    const suggestBtn = document.getElementById("suggest-questions");
+    const suggestionsBox = document.getElementById("suggestions");
+
+    suggestBtn.addEventListener("click", () => {
+        const suggestions = [
+            "What is the main topic of the document?",
+            "Summarize the key points.",
+            "What are the conclusions?",
+            "What are the key statistics mentioned?"
+        ];
+
+        suggestionsBox.innerHTML = suggestions.map(q =>
+            `<button class="suggestion">${q}</button>`).join("");
+        suggestionsBox.classList.remove("hidden");
+
+        document.querySelectorAll(".suggestion").forEach(btn => {
+            btn.addEventListener("click", () => {
+                questionInput.value = btn.textContent;
+            });
+        });
+    });
+
+    // Append message to chat
+    function appendMessage(sender, text) {
+        const msg = document.createElement("div");
+        msg.classList.add("message", sender);
+        msg.innerHTML = `<p>${text}</p>`;
+        chatMessages.appendChild(msg);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    // Refresh summary
+    document.getElementById("refresh-summary").addEventListener("click", () => {
+        showStatus("Refreshing summary...");
+        simulateProcessing(() => {
+            showSummary("This is an updated summary of the document.");
+        });
+    });
+
+    // Error modal
+    const errorModal = document.getElementById("error-modal");
+    const errorMessage = document.getElementById("error-message");
+    const closeModal = document.getElementById("close-modal");
+
+    function showError(msg) {
+        errorMessage.textContent = msg;
+        errorModal.classList.remove("hidden");
+    }
+
+    closeModal.addEventListener("click", () => {
+        errorModal.classList.add("hidden");
+    });
+
+    window.addEventListener("click", (e) => {
+        if (e.target === errorModal) {
+            errorModal.classList.add("hidden");
+        }
+    });
 });
