@@ -1,7 +1,9 @@
 import os
 import logging
 from typing import Dict, Any, List, Optional
-from langchain_community.embeddings import HuggingFaceEmbeddings
+# from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
+
 from langchain_community.vectorstores import FAISS
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.chains import RetrievalQA

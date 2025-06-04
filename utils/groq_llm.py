@@ -17,6 +17,7 @@ class GroqLLM(LLM):
     api_key: str
     model: Optional[str] = None
     max_tokens: Optional[int] = None
+    api_url: Optional[str] = None
 
     def __init__(self, **kwargs):
         config = get_config()
@@ -26,13 +27,13 @@ class GroqLLM(LLM):
             kwargs['model'] = config.GROQ_MODEL
         if 'max_tokens' not in kwargs or kwargs['max_tokens'] is None:
             kwargs['max_tokens'] = config.MAX_TOKENS
+        if 'api_url' not in kwargs or kwargs['api_url'] is None:
+            kwargs['api_url'] = config.GROQ_API_URL
 
         super().__init__(**kwargs)
 
         if not self.api_key:
             raise ValueError("Groq API key is required")
-
-        self.api_url = config.GROQ_API_URL
 
     @property
     def _llm_type(self) -> str:
