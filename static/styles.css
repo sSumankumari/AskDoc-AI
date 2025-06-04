@@ -89,8 +89,10 @@ header {
     transition: background 0.3s ease;
 }
 
-.upload-area:hover {
+.upload-area:hover,
+.upload-area.dragging {
     background-color: #2d333b;
+    border-color: #58a6ff;
 }
 
 .upload-area i {
@@ -134,6 +136,11 @@ header {
 
 .input-group button:hover {
     background: #1f6feb;
+}
+
+.input-group button:disabled {
+    background: #6e7681;
+    cursor: not-allowed;
 }
 
 /* Hidden */
@@ -194,6 +201,12 @@ header {
     color: #58a6ff;
     font-size: 1rem;
     cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.refresh-btn:hover,
+.suggest-btn:hover {
+    color: #1f6feb;
 }
 
 .summary-content {
@@ -202,6 +215,7 @@ header {
     border-radius: 10px;
     min-height: 100px;
     color: #c9d1d9;
+    line-height: 1.6;
 }
 
 .summary-loading {
@@ -227,32 +241,72 @@ header {
     border-radius: 10px;
     height: 300px;
     overflow-y: auto;
+    border: 1px solid #30363d;
 }
 
-.chat-messages > div {
-    margin-bottom: 10px;
-    padding: 8px 12px;
+.chat-messages {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.chat-messages .message {
+    padding: 10px 15px;
     border-radius: 10px;
     line-height: 1.4;
+    max-width: 80%;
+    word-wrap: break-word;
 }
 
-.chat-messages .user {
+.chat-messages .message.user {
     background-color: #58a6ff;
     color: #fff;
     align-self: flex-end;
+    margin-left: auto;
 }
 
-.chat-messages .bot {
+.chat-messages .message.ai {
     background-color: #2d333b;
     color: #c9d1d9;
+    align-self: flex-start;
+}
+
+.chat-messages .message.typing {
+    opacity: 0.7;
+}
+
+.context-info {
+    font-size: 0.8rem;
+    color: #8b949e;
+    padding: 5px 10px;
+    text-align: center;
+    font-style: italic;
 }
 
 .suggestions {
     margin-bottom: 20px;
-    padding: 10px;
+    padding: 15px;
     background-color: #2d333b;
     border-radius: 8px;
-    color: #8b949e;
+    border: 1px solid #30363d;
+}
+
+.suggestion {
+    background: #21262d;
+    border: 1px solid #30363d;
+    color: #c9d1d9;
+    padding: 8px 12px;
+    margin: 5px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+}
+
+.suggestion:hover {
+    background: #30363d;
+    border-color: #58a6ff;
+    color: #58a6ff;
 }
 
 /* Footer */
@@ -266,6 +320,10 @@ footer {
 footer a {
     color: #58a6ff;
     text-decoration: none;
+}
+
+footer a:hover {
+    text-decoration: underline;
 }
 
 /* Modal */
@@ -288,6 +346,7 @@ footer a {
     border-radius: 10px;
     width: 90%;
     max-width: 400px;
+    border: 1px solid #30363d;
 }
 
 .modal-header {
@@ -296,11 +355,12 @@ footer a {
     align-items: center;
     color: #f85149;
     font-size: 1.2rem;
+    margin-bottom: 15px;
 }
 
 .modal-body {
-    margin-top: 15px;
     color: #c9d1d9;
+    line-height: 1.5;
 }
 
 .close-btn {
@@ -309,10 +369,40 @@ footer a {
     color: #f85149;
     font-size: 1.5rem;
     cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.close-btn:hover {
+    background: rgba(248, 81, 73, 0.1);
+    border-radius: 50%;
+}
+
+/* Loading states */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* Success/Error states */
+.success {
+    color: #238636;
+}
+
+.error {
+    color: #f85149;
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
+    .container {
+        padding: 20px;
+    }
+
     .chat-container {
         height: 250px;
     }
@@ -324,9 +414,48 @@ footer a {
 
     .tab-btn {
         font-size: 0.9rem;
+        padding: 8px 16px;
+    }
+
+    .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
     }
 
     .section-header h2 {
         font-size: 1rem;
+    }
+
+    .upload-area {
+        padding: 30px 20px;
+    }
+
+    .chat-messages .message {
+        max-width: 90%;
+    }
+}
+
+@media (max-width: 480px) {
+    .upload-tabs {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .tab-btn {
+        width: 100%;
+    }
+
+    .input-group {
+        flex-direction: column;
+    }
+
+    .input-group input {
+        border-radius: 8px 8px 0 0;
+    }
+
+    .input-group button {
+        border-radius: 0 0 8px 8px;
+        padding: 12px;
     }
 }
