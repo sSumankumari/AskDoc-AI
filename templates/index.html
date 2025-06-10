@@ -16,10 +16,11 @@
                 <h1>AskDoc <span class="ai-highlight">AI</span></h1>
             </div>
             <p class="subtitle">Upload documents or paste URLs to get AI-powered summaries and answers</p>
+            <button class="new-chat-btn" id="new-chat-btn"><i class="fas fa-plus-circle"></i> New Chat</button>
         </header>
 
-        <!-- Upload Section -->
-        <section class="upload-section">
+        <!-- Upload Section (Always visible) -->
+        <section class="upload-section" id="upload-section">
             <div class="upload-tabs">
                 <button class="tab-btn active" data-tab="pdf">
                     <i class="fas fa-file-pdf"></i> PDF Upload
@@ -28,7 +29,6 @@
                     <i class="fas fa-link"></i> Web URL
                 </button>
             </div>
-
             <div class="tab-content">
                 <!-- PDF Upload Tab -->
                 <div class="tab-panel active" id="pdf-panel">
@@ -39,7 +39,6 @@
                         <small>Maximum file size: 16MB</small>
                     </div>
                 </div>
-
                 <!-- URL Tab -->
                 <div class="tab-panel" id="url-panel">
                     <form id="url-form">
@@ -65,50 +64,62 @@
             </div>
         </section>
 
-        <!-- Summary Section -->
-        <section class="summary-section hidden" id="summary-section">
-            <div class="section-header">
-                <h2><i class="fas fa-file-alt"></i> Document Summary</h2>
-                <button class="refresh-btn" id="refresh-summary">
-                    <i class="fas fa-sync-alt"></i>
-                </button>
+        <!-- Two Column Layout (Always visible, just empty if no doc) -->
+        <div class="two-column-layout" id="main-content">
+            <!-- Left Column - Summary -->
+            <div class="left-column">
+                <section class="summary-section" id="summary-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-file-alt"></i> Document Summary</h2>
+                        <button class="refresh-btn" id="refresh-summary">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                    <div class="summary-content" id="summary-content">
+                        <div class="summary-placeholder" id="summary-placeholder">
+                            <i class="fas fa-file-alt"></i>
+                            <p>No document analyzed yet.<br>Upload or specify a document to see its summary here.</p>
+                        </div>
+                        <div class="summary-loading hidden">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <span>Generating summary...</span>
+                        </div>
+                    </div>
+                    <div class="document-info" id="document-info"></div>
+                </section>
             </div>
-            <div class="summary-content" id="summary-content">
-                <div class="summary-loading hidden">
-                    <i class="fas fa-spinner fa-spin"></i>
-                    <span>Generating summary...</span>
-                </div>
+
+            <!-- Right Column - Q&A -->
+            <div class="right-column">
+                <section class="qa-section" id="qa-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-comments"></i> Ask Questions</h2>
+                        <button class="suggest-btn" id="suggest-questions">
+                            <i class="fas fa-lightbulb"></i> Suggestions
+                        </button>
+                    </div>
+                    <!-- Question Input -->
+                    <form class="question-form" id="question-form">
+                        <div class="input-group">
+                            <input type="text" id="question-input" placeholder="Ask anything about your document..." required>
+                            <button type="submit">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </form>
+                    <!-- Suggested Questions -->
+                    <div class="suggestions hidden" id="suggestions"></div>
+                    <!-- Chat Container -->
+                    <div class="chat-container" id="chat-container">
+                        <div class="chat-messages" id="chat-messages"></div>
+                        <div class="chat-placeholder" id="chat-placeholder">
+                            <i class="fas fa-comments"></i>
+                            <p>No conversation yet.<br>Ask your first question about the document!</p>
+                        </div>
+                    </div>
+                </section>
             </div>
-            <div class="document-info" id="document-info"></div>
-        </section>
-
-        <!-- Q&A Section -->
-        <section class="qa-section hidden" id="qa-section">
-            <div class="section-header">
-                <h2><i class="fas fa-comments"></i> Ask Questions</h2>
-                <button class="suggest-btn" id="suggest-questions">
-                    <i class="fas fa-lightbulb"></i> Suggestions
-                </button>
-            </div>
-
-            <!-- Question Input -->
-            <form class="question-form" id="question-form">
-                <div class="input-group">
-                    <input type="text" id="question-input" placeholder="Ask anything about your document..." required>
-                    <button type="submit">
-                        <i class="fas fa-paper-plane"></i>
-                    </button>
-                </div>
-            </form>
-
-            <!-- Suggested Questions -->
-            <div class="suggestions hidden" id="suggestions"></div>
-
-            <!-- Chat Container -->
-            <div class="chat-container" id="chat-container">
-                <div class="chat-messages" id="chat-messages"></div>
-            </div>
-        </section>
+        </div>
 
         <!-- Footer -->
         <footer>

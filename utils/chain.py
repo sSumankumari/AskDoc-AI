@@ -1,4 +1,5 @@
 import os
+import time
 import logging
 from typing import Dict, Any, List, Optional
 # from langchain_community.embeddings import HuggingFaceEmbeddings
@@ -102,25 +103,47 @@ class DocumentProcessor:
             raise
 
     def get_document_summary(self, document_text):
-        """Generate a detailed, structured summary for the document."""
-        prompt = (
-            "You are an expert document summarizer. Read the following text and generate a rich, detailed summary. "
-            "The summary should:\n"
-            "- Cover all major sections and key points.\n"
-            "- Use clear, concise language.\n"
-            "- Organize information as bullet points (use '-' or '*' for bullets) for clarity.\n"
-            "- If possible, group bullets under section headers.\n"
-            "- Avoid generic statements; be specific to the content.\n\n"
-            "Document:\n"
-            f"{document_text}\n\n"
-            "Summary:"
-        )
-        # Replace this with your actual LLM/groq call
-        response = self.llm_generate(prompt, max_tokens=500)
-        return response.strip()
+        """
+        Generate a detailed, structured summary for the document using chunked summarization to avoid token limit errors.
+        """
+        # Split the document into manageable chunks for summarization (e.g., 2000-3000 characters or less)
+        doc = Document(page_content=document_text)
+        chunks = self.text_splitter.split_documents([doc])
 
-    def llm_generate(self, prompt, max_tokens=500):
-        # This should call your LLM API (Groq, OpenAI, etc.)
+        chunk_summaries = []
+        max_chunks = 12  # To avoid hitting token limits, you may wish to limit total number of chunks summarized
+
+        logger.info(f"Summarizing {min(len(chunks), max_chunks)} chunks out of {len(chunks)} for summary.")
+
+        for idx, chunk in enumerate(chunks[:max_chunks]):
+            prompt = (
+                "Read the following section of a document and generate a concise bullet-point summary. "
+                "Use '-' or '*' for bullets. Be specific to the content. Keep the summary under 120 words.\n\n"
+                f"Section {idx + 1}:\n{chunk.page_content}\n\nSummary:"
+            )
+            try:
+                chunk_summary = self.llm_generate(prompt, max_tokens=350)
+                chunk_summaries.append(chunk_summary.strip())
+            except Exception as e:
+                logger.error(f"Error summarizing chunk {idx + 1}: {e}")
+
+        # Combine all chunk summaries into a final summary
+        combined_summaries = "\n\n".join(chunk_summaries)
+        final_prompt = (
+            "You are an expert document summarizer. Combine the following summaries into a single, detailed, bullet-point summary "
+            "with section headers if appropriate. Avoid repetition and capture all main points.\n\n"
+            f"{combined_summaries}\n\n"
+            "Final Summary:"
+        )
+        try:
+            final_summary = self.llm_generate(final_prompt, max_tokens=600)
+            return final_summary.strip()
+        except Exception as e:
+            logger.error(f"Error during final summary combination: {e}")
+            # As fallback, return joined chunk summaries
+            return combined_summaries.strip()
+
+    def llm_generate(self, prompt, max_tokens=500, max_retries=5):
         import requests
         api_key = os.getenv("GROQ_API_KEY") or self.groq_api_key
         url = "https://api.groq.com/openai/v1/chat/completions"
@@ -131,22 +154,44 @@ class DocumentProcessor:
             "max_tokens": max_tokens,
             "temperature": 0.4,
         }
-        try:
-            response = requests.post(url, headers=headers, json=payload, timeout=45)
-            data = response.json()
-            # Check for errors in the API response
-            if response.status_code != 200:
-                logger.error(f"LLM API error (status {response.status_code}): {data.get('error', data)}")
-                logger.error(f"LLM API full response: {response.text}")
-                raise RuntimeError(f"LLM API error: {data.get('error', data)}")
-            if "choices" not in data or not data["choices"]:
-                logger.error(f"LLM API response missing 'choices': {data}")
-                logger.error(f"LLM API full response: {response.text}")
-                raise RuntimeError(f"LLM API response missing 'choices': {data}")
-            return data["choices"][0]["message"]["content"]
-        except Exception as e:
-            logger.error(f"Exception during LLM call: {str(e)}")
-            raise RuntimeError(f"Exception during LLM call: {str(e)}")
+        for attempt in range(max_retries):
+            try:
+                response = requests.post(url, headers=headers, json=payload, timeout=45)
+                data = response.json()
+                # Handle rate limit (429) with Groq-specific retry logic
+                if response.status_code == 429:
+                    msg = data.get("error", {}).get("message", "")
+                    logger.error(f"LLM API error (429): {msg}")
+                    # Try to extract "Please try again in Xs." or "in Xms."
+                    wait_match = re.search(r"Please try again in ([\d\.]+)(ms|s)", msg)
+                    if wait_match:
+                        wait_time = float(wait_match.group(1))
+                        unit = wait_match.group(2)
+                        if unit == "ms":
+                            wait_time = wait_time / 1000.0
+                        logger.warning(f"Rate limit hit, sleeping for {wait_time + 0.1:.2f} seconds...")
+                        time.sleep(wait_time + 0.1)  # Add a small buffer
+                        continue  # Retry after waiting
+                    else:
+                        # If we can't parse, default to 1.5s and try again
+                        logger.warning("Rate limit hit, couldn't parse wait time, sleeping for 1.5s")
+                        time.sleep(1.5)
+                        continue
+                if response.status_code != 200:
+                    logger.error(f"LLM API error (status {response.status_code}): {data.get('error', data)}")
+                    logger.error(f"LLM API full response: {response.text}")
+                    raise RuntimeError(f"LLM API error: {data.get('error', data)}")
+                if "choices" not in data or not data["choices"]:
+                    logger.error(f"LLM API response missing 'choices': {data}")
+                    logger.error(f"LLM API full response: {response.text}")
+                    raise RuntimeError(f"LLM API response missing 'choices': {data}")
+                return data["choices"][0]["message"]["content"]
+            except Exception as e:
+                logger.error(f"Exception during LLM call (attempt {attempt+1}/{max_retries}): {str(e)}")
+                if attempt == max_retries - 1:
+                    raise RuntimeError(f"Exception during LLM call after {max_retries} retries: {str(e)}")
+                else:
+                    time.sleep(2)  # Fallback wait before retry
 
 
 class EnhancedRetrievalQA:
