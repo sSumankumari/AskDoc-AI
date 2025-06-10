@@ -118,14 +118,14 @@ def analyze_document():
                 document_data['metadata']
             )
 
-            # Generate summary
-            summary = doc_processor.get_document_summary(document_data['content'])
+            # Generate summary (returns markdown with bullets/sections)
+            summary_markdown = doc_processor.get_document_summary(document_data['content'])
 
             # Prepare response
             response_data = {
                 'success': True,
                 'message': f'Successfully analyzed {source_type.upper()}',
-                'summary': summary,
+                'summary_markdown': summary_markdown,
                 'metadata': {
                     'source_type': source_type,
                     'content_length': len(document_data['content']),
@@ -184,7 +184,7 @@ def get_analysis_status():
 @analyze_bp.route('/analyze/summary', methods=['GET'])
 def get_document_summary():
     """
-    Get document summary
+    Get document summary (as markdown, for pointer/bullet formatting)
     """
     try:
         from app import get_document_store
@@ -194,16 +194,17 @@ def get_document_summary():
         if not doc_store['document_text']:
             return jsonify({'error': 'No document has been analyzed'}), 404
 
-        summary = doc_processor.get_document_summary(doc_store['document_text'])
+        # Generate summary with markdown bullets/sections
+        summary_markdown = doc_processor.get_document_summary(doc_store['document_text'])
         metadata = doc_store.get('document_metadata', {})
 
         return jsonify({
-            'summary': summary,
+            'summary_markdown': summary_markdown,
             'metadata': metadata,
             'statistics': {
                 'total_characters': len(doc_store['document_text']),
                 'total_words': len(doc_store['document_text'].split()),
-                'summary_length': len(summary)
+                'summary_length': len(summary_markdown)
             }
         })
 

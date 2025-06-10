@@ -1,7 +1,7 @@
 document.addEventListener("DOMContentLoaded", () => {
     // Configuration
     const API_BASE_URL = window.location.origin; // Adjust if backend is on different port
-    
+
     // Tab switching logic
     const tabButtons = document.querySelectorAll(".tab-btn");
     const tabPanels = document.querySelectorAll(".tab-panel");
@@ -72,7 +72,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             hideStatus();
-            showSummary(result.summary, result.metadata);
+            showSummary(result.summary_markdown, result.metadata);
             showQASection();
             await loadSuggestedQuestions();
 
@@ -109,7 +109,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             hideStatus();
-            showSummary(result.summary, result.metadata);
+            showSummary(result.summary_markdown, result.metadata);
             showQASection();
             await loadSuggestedQuestions();
 
@@ -124,7 +124,7 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("status-text").textContent = message;
         document.getElementById("status-section").classList.remove("hidden");
         document.getElementById("progress-fill").style.width = "0%";
-        
+
         // Animate progress bar
         let width = 0;
         const interval = setInterval(() => {
@@ -145,13 +145,14 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Summary handling
-    function showSummary(content, metadata = {}) {
+    function showSummary(markdownContent, metadata = {}) {
         const summarySection = document.getElementById("summary-section");
         const summaryContent = document.getElementById("summary-content");
         const documentInfo = document.getElementById("document-info");
 
-        summaryContent.innerHTML = `<p>${content}</p>`;
-        
+        // Render markdown safely
+        summaryContent.innerHTML = marked.parse(markdownContent || "No summary available.");
+
         // Display document metadata
         let infoText = '';
         if (metadata.source_type) {
@@ -169,7 +170,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (metadata.title && metadata.source_type === 'url') {
             infoText += ` • Title: ${metadata.title}`;
         }
-        
+
         documentInfo.textContent = infoText;
         summarySection.classList.remove("hidden");
     }
@@ -213,7 +214,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 throw new Error(result.error || 'Failed to get answer');
             }
 
-            // Add AI response
+            // Add AI response (supports markdown)
             appendMessage("ai", result.answer);
 
             // Show context info if available
@@ -264,7 +265,8 @@ document.addEventListener("DOMContentLoaded", () => {
     function appendMessage(sender, text) {
         const msg = document.createElement("div");
         msg.classList.add("message", sender);
-        msg.innerHTML = `<p>${text}</p>`;
+        // Render markdown for AI, plain text for user
+        msg.innerHTML = sender === "ai" ? marked.parse(text) : `<p>${text}</p>`;
         chatMessages.appendChild(msg);
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
@@ -303,7 +305,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Refresh summary
     document.getElementById("refresh-summary").addEventListener("click", async () => {
         showStatus("Refreshing summary...");
-        
+
         try {
             const response = await fetch(`${API_BASE_URL}/api/analyze/summary`);
             const result = await response.json();
@@ -313,7 +315,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             hideStatus();
-            showSummary(result.summary, result.metadata);
+            showSummary(result.summary_markdown, result.metadata);
 
         } catch (error) {
             hideStatus();
@@ -353,9 +355,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 // Document is already loaded, show summary and Q&A
                 const summaryResponse = await fetch(`${API_BASE_URL}/api/analyze/summary`);
                 const summaryResult = await summaryResponse.json();
-                
+
                 if (summaryResponse.ok) {
-                    showSummary(summaryResult.summary, summaryResult.metadata);
+                    showSummary(summaryResult.summary_markdown, summaryResult.metadata);
                     showQASection();
                     await loadSuggestedQuestions();
                 }

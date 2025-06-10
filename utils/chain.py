@@ -101,21 +101,52 @@ class DocumentProcessor:
             logger.error(f"Error processing document: {str(e)}")
             raise
 
-    def get_document_summary(self, document_text: str, max_length: int = 500) -> str:
-        """
-        Generate a summary of the document
-        """
+    def get_document_summary(self, document_text):
+        """Generate a detailed, structured summary for the document."""
+        prompt = (
+            "You are an expert document summarizer. Read the following text and generate a rich, detailed summary. "
+            "The summary should:\n"
+            "- Cover all major sections and key points.\n"
+            "- Use clear, concise language.\n"
+            "- Organize information as bullet points (use '-' or '*' for bullets) for clarity.\n"
+            "- If possible, group bullets under section headers.\n"
+            "- Avoid generic statements; be specific to the content.\n\n"
+            "Document:\n"
+            f"{document_text}\n\n"
+            "Summary:"
+        )
+        # Replace this with your actual LLM/groq call
+        response = self.llm_generate(prompt, max_tokens=500)
+        return response.strip()
+
+    def llm_generate(self, prompt, max_tokens=500):
+        # This should call your LLM API (Groq, OpenAI, etc.)
+        import requests
+        api_key = os.getenv("GROQ_API_KEY") or self.groq_api_key
+        url = "https://api.groq.com/openai/v1/chat/completions"
+        headers = {"Authorization": f"Bearer {api_key}"}
+        payload = {
+            "model": "llama3-8b-8192",
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": max_tokens,
+            "temperature": 0.4,
+        }
         try:
-            if len(document_text) <= max_length:
-                return document_text
-
-            # Take first part and add ellipsis
-            summary = document_text[:max_length].rsplit(' ', 1)[0]
-            return summary + "..."
-
+            response = requests.post(url, headers=headers, json=payload, timeout=45)
+            data = response.json()
+            # Check for errors in the API response
+            if response.status_code != 200:
+                logger.error(f"LLM API error (status {response.status_code}): {data.get('error', data)}")
+                logger.error(f"LLM API full response: {response.text}")
+                raise RuntimeError(f"LLM API error: {data.get('error', data)}")
+            if "choices" not in data or not data["choices"]:
+                logger.error(f"LLM API response missing 'choices': {data}")
+                logger.error(f"LLM API full response: {response.text}")
+                raise RuntimeError(f"LLM API response missing 'choices': {data}")
+            return data["choices"][0]["message"]["content"]
         except Exception as e:
-            logger.error(f"Error generating summary: {str(e)}")
-            return document_text[:max_length] + "..."
+            logger.error(f"Exception during LLM call: {str(e)}")
+            raise RuntimeError(f"Exception during LLM call: {str(e)}")
 
 
 class EnhancedRetrievalQA:
