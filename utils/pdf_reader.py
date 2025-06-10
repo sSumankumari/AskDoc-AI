@@ -40,7 +40,9 @@ class PDFProcessor:
             file_content = file_obj.read(1024)  # Read first 1KB for type detection
             file_obj.seek(0)  # Reset to beginning
 
-            mime_type = magic.from_buffer(file_content, mime=True)
+            # Use magic instance to detect MIME type
+            magic_instance = magic.Magic(mime=True)
+            mime_type = magic_instance.from_buffer(file_content)
 
             if mime_type not in self.allowed_mime_types:
                 raise ValueError(f"Invalid file type: {mime_type}. Expected PDF file.")
@@ -50,6 +52,7 @@ class PDFProcessor:
         except Exception as e:
             logger.error(f"PDF validation error: {str(e)}")
             raise
+
 
     def read_pdf_content(self, file_obj) -> Dict[str, Any]:
         """

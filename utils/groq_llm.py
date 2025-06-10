@@ -49,11 +49,19 @@ class GroqLLM(LLM):
                 "Content-Type": "application/json",
             }
 
-            # Format prompt for chat completion
+            # Enhanced system prompt for best-quality, well-formatted responses
             messages = [
                 {
                     "role": "system",
-                    "content": "You are a helpful AI assistant that answers questions based on the provided context. Be concise and accurate."
+                    "content": (
+                        "You are a highly intelligent, accurate, and helpful AI assistant. "
+                        "Always provide clear, concise, and well-structured answers using proper markdown formatting. "
+                        "Use bullet points, code blocks, and tables where appropriate. "
+                        "If you reference code or examples, format them using markdown. "
+                        "Explain your reasoning when needed. "
+                        "If you cannot answer based on the given context, respond with: "
+                        "\"I don't have enough information to answer this question based on the provided context.\""
+                    )
                 },
                 {
                     "role": "user",
@@ -113,13 +121,20 @@ class GroqLLM(LLM):
         """
         Generate answer with specific context
         """
-        prompt = f"""Context: {context}
-
-Question: {question}
-
-Please answer the question based on the provided context. If the answer is not in the context, say "I don't have enough information to answer this question based on the provided context."
-
-Answer:"""
+        prompt = (
+            f"## Context\n"
+            f"{context}\n\n"
+            f"## Question\n"
+            f"{question}\n\n"
+            "### Instructions\n"
+            "- Answer the question based strictly on the provided context.\n"
+            "- If code is needed, use markdown code blocks.\n"
+            "- Use bullet points and tables if appropriate.\n"
+            "- Provide a clear and well-formatted response.\n"
+            "- If the answer is not in the context, reply with:\n"
+            "  > I don't have enough information to answer this question based on the provided context.\n\n"
+            "## Answer"
+        )
 
         return self._call(prompt)
 
