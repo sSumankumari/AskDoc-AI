@@ -7,7 +7,7 @@ load_dotenv()
 
 class Config:
     """Base configuration class"""
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'
+    SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
     GROQ_API_KEY = os.environ.get('GROQ_API_KEY')
 
     # File upload settings
@@ -32,30 +32,29 @@ class Config:
     REQUEST_TIMEOUT = 30
     MAX_URL_LENGTH = 2048
 
+    # Hosting and debugging (read from env)
+    HOST = os.environ.get("HOST", "0.0.0.0")
+    PORT = int(os.environ.get("PORT", 5000))
+    DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
+
     @classmethod
     def validate_config(cls):
         """Validate required configuration"""
         if not cls.GROQ_API_KEY:
             raise ValueError("GROQ_API_KEY is required. Please set it in your .env file")
-
-        # Create required directories
         os.makedirs(cls.UPLOAD_FOLDER, exist_ok=True)
         os.makedirs(cls.VECTOR_STORE_PATH, exist_ok=True)
 
 
+# No longer needed to define hardcoded HOST/PORT/DEBUG in sub-classes
 class DevelopmentConfig(Config):
     DEBUG = True
-    HOST = '127.0.0.1'
-    PORT = 5000
 
 
 class ProductionConfig(Config):
     DEBUG = False
-    HOST = '0.0.0.0'
-    PORT = int(os.environ.get('PORT', 5000))
 
 
-# Choose configuration based on environment
 config = {
     'development': DevelopmentConfig,
     'production': ProductionConfig,

@@ -71,17 +71,20 @@ def create_app():
     return app
 
 if __name__ == '__main__':
-    app = create_app()
     config = get_config()
-    host = getattr(config, "HOST", "0.0.0.0")
-    port = getattr(config, "PORT", 5000)
-    debug = getattr(config, "DEBUG", True)
+    try:
+        config.validate_config()  # Ensures env variables are set & folders exist
+    except ValueError as e:
+        logger.error(f"Startup validation failed: {e}")
+        raise
+
+    app = create_app()
+
+    host = os.environ.get("HOST", "0.0.0.0")
+    port = int(os.environ.get("PORT", 5000))
+    debug = os.environ.get("DEBUG", "False").lower() == "true"
 
     logger.info(f"Starting Document Analyzer API on {host}:{port}")
     logger.info(f"Debug mode: {debug}")
 
-    app.run(
-        host=host,
-        port=port,
-        debug=debug
-    )
+    app.run(host=host, port=port, debug=debug)
